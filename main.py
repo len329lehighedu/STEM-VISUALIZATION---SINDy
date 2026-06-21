@@ -3,7 +3,7 @@
 import os
 import sys
 
-# Thêm đường dẫn để Python tìm thấy các module trong folder
+# Path for Python to find the data files
 sys.path.append(os.path.dirname(__file__))
 
 from bokeh.plotting import curdoc
