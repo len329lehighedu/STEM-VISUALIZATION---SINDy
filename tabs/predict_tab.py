@@ -98,7 +98,7 @@ def predict_tab_layout(engine, trained_model_storage):
         names          = saved_data.get('feature_names', [])
         n_vars         = len(names) if names else model_instance.n_features_in_
 
-        # Parse IC từ TextInput
+        # Parse IC from TextInput
         ic_str = ic_input.value.strip()
         if ic_str:
             try:
