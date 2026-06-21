@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="minimal-container">
+    <header class="page-header">
+        <h2 class="minimal-title">Building Your SINDy Model</h2>
+        <p class="main-subtitle">Follow these steps to discover the underlying physics of your data.</p>
+    </header>
+
+    <!-- STEP 1 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">01. Data Preparation</h2>
+            <p>Upload your system measurements in <b>.csv</b> format. The data must be organized as a time-series state-space matrix.</p>
+            <div class="data-spec">
+                <p><b>Required Structure:</b></p>
+                <ul>
+                    <li><b>First Column:</b> Strictly increasing time values \( (t) \).</li>
+                    <li><b>Subsequent Columns:</b> State variables \( (x_1, x_2, \dots, x_n) \).</li>
+                </ul>
+            </div>
+            <p class="alert-text">⚠️ Ensure no missing values (NaN) and constant sampling intervals if possible.</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="{{ url_for('static', filename='images/datafile.png') }}" alt="CSV Format Example" class="ins-img">
+                <p class="caption">Example of a properly formatted state-space CSV.</p>
+            </div>
+        </div>
+    </article>
+
+    <hr class="minimal-hr">
+
+    <!-- STEP 2 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">02. Parameters Suggestion</h2>
+            <p>When data is uploaded, the module will read the data and come up with recommendations:</p>
+            <ul class="benefit-list">
+                <li><b>Library Type:</b> Polynomial vs Fourier based on system behavior.</li>
+                <li><b>Degree:</b> Estimated from linearity analysis of the derivatives.</li>
+                <li><b>Threshold:</b> Estimated from the noise level in your data.</li>
+            </ul>
+            <p class="tip-text">💡 These are starting points — you can always tune them manually.</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="../static/images/aisuggestion.png" alt="Explore Data" class="ins-img">
+                <p class="caption">AI Suggester analyzing time series, phase portrait, and FFT.</p>
+            </div>
+        </div>
+    </article>
+
+    <hr class="minimal-hr">
+
+    <!-- STEP 3 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">03. Train / Validation Split</h2>
+            <p>Use the <b>Split Slider</b> to define how much data the algorithm will use during the discovery phase.</p>
+            <ul class="benefit-list">
+                <li><b>Training Set:</b> Used to find the sparse coefficients \( \Xi \). Derivatives \( \dot{X} \) are computed on the full dataset first, then randomly split.</li>
+                <li><b>Validation Set:</b> The remaining points, used to check the model on unseen data.</li>
+            </ul>
+            <p class="alert-text">⚠️ SINDy loss is based on residuals of \( \dot{X} \), not \( x(t) \) directly. Train/Validation metrics reflect derivative-space accuracy.</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="{{ url_for('static', filename='images/trainvalsplit.png') }}" alt="Train Validation Split" class="ins-img">
+            </div>
+        </div>
+    </article>
+
+    <hr class="minimal-hr">
+
+    <!-- STEP 4 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">04. Model Configuration & Training</h2>
+            <p>Define the <b>Mathematical Search Space</b>. SINDy will find the sparsest combination of these functions to describe your data.</p>
+            <div class="config-details">
+                <div class="detail-item">
+                    <b>Library Type:</b>
+                    <p>Choose <i>Polynomial</i> for most physical systems. Use <i>Fourier</i> only if you know the governing equations involve \( \sin/\cos \) terms.</p>
+                </div>
+                <div class="detail-item">
+                    <b>Polynomial Degree:</b>
+                    <p>Higher degrees (e.g., \( x^3 \)) allow more complex interactions but increase risk of noise fitting. Use the AI Suggester as a starting point.</p>
+                </div>
+                <div class="detail-item">
+                    <b>Threshold \( (\lambda) \):</b>
+                    <p>The sparsity controller. Higher \( \lambda \) prunes small coefficients → simpler equations. Too high and important terms get removed.</p>
+                </div>
+            </div>
+            <p class="tip-text">💡 Run multiple configurations and compare them in the History Leaderboard.</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="{{ url_for('static', filename='images/parameters.png') }}" alt="Parameter Selection" class="ins-img">
+                <p class="caption">Effect of \( \lambda \) on equation sparsity.</p>
+            </div>
+        </div>
+    </article>
+
+    <hr class="minimal-hr">
+
+    <!-- STEP 5 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">05. Testing</h2>
+            <p>A good SINDy model should generalize beyond the training trajectory. In the <b>Test Tab</b>, verify this by simulating the discovered equations from entirely new initial conditions.</p>
+            <ul class="benefit-list">
+                <li><b>Load Test CSV:</b> A separate dataset generated from the same system but with different \( x_0 \). Do not use any portion of this for training to avoid overfitting.</li>
+                <li><b>Numerical Integration:</b> The model uses <code>solve_ivp</code> (RK45) to forward-simulate from the test initial condition.</li>
+                <li><b>RMSE on \( x(t) \):</b> Unlike training metrics (on \( \dot{X} \)), test RMSE is computed directly on the state trajectories.</li>
+            </ul>
+            <p class="alert-text">⚠️ A model can have low training RMSE on \( \dot{X} \) but still diverge when forward-simulated. Always test!</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="../static/images/testtab.png" alt="Test Tab" class="ins-img">
+                <p class="caption">True trajectory (dots) vs SINDy simulation (line) from a new \( x_0 \).</p>
+            </div>
+        </div>
+    </article>
+
+    <hr class="minimal-hr">
+
+    <!-- STEP 6 -->
+    <article class="instruction-row">
+        <div class="text-content">
+            <h2 class="step-title">06. Predict Future Trajectories</h2>
+            <p>Once you have a validated model, use the <b>Predict Tab</b> to simulate the system into the future from any initial condition of your choice.</p>
+            <div class="config-details">
+                <div class="detail-item">
+                    <b>Select Model:</b>
+                    <p>Choose from any run in your History Leaderboard. Pick the one with the best validation and test metrics.</p>
+                </div>
+                <div class="detail-item">
+                    <b>Set Initial Conditions \( x_0 \):</b>
+                    <p>Enter comma-separated values for each state variable. Variable names are shown as hints based on your training data.</p>
+                </div>
+                <div class="detail-item">
+                    <b>Prediction Horizon:</b>
+                    <p>Set how far into the future (in seconds) to simulate. Longer horizons accumulate more integration error.</p>
+                </div>
+            </div>
+            <p class="tip-text">💡 The discovered equations are valid physics — they can predict behavior far beyond the original data range.</p>
+        </div>
+        <div class="visual-content">
+            <div class="placeholder-box">
+                <img src="../static/images/predicttab.png" alt="Predict Tab" class="ins-img">
+                <p class="caption">Future trajectory prediction from a custom \( x_0 \).</p>
+            </div>
+        </div>
+    </article>
+</div>
+
+<style>
+    .minimal-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    .page-header { margin-bottom: 50px; text-align: left; }
+    .minimal-title {
+        font-size: 28px;
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+    }
+    .main-subtitle { font-size: 17px; color: #7f8c8d; }
+
+    .instruction-row {
+        display: flex;
+        gap: 50px;
+        align-items: flex-start;
+        margin-bottom: 60px;
+    }
+    .text-content { flex: 1.2; }
+    .visual-content { flex: 1; }
+
+    .step-title {
+        font-size: 22px;
+        color: #2c3e50;
+        margin-bottom: 16px;
+        font-weight: 700;
+        border-left: 5px solid #3498db;
+        padding-left: 15px;
+    }
+
+    p, li {
+        font-size: 16px;
+        line-height: 1.8;
+        color: #4f5f6f;
+    }
+
+    .minimal-hr {
+        border: 0;
+        border-top: 1px solid #eee;
+        margin: 20px 0 60px 0;
+    }
+
+    .alert-text { color: #856404; font-size: 14px; margin-top: 15px; }
+    .tip-text   { color: #27ae60; font-size: 15px; margin-top: 15px; }
+
+    .detail-item {
+        margin-bottom: 16px;
+        border-left: 3px solid #3498db;
+        padding-left: 15px;
+    }
+    .detail-item b  { color: #2c3e50; font-size: 15px; }
+    .detail-item p  { font-size: 15px; margin: 4px 0 0 0; }
+
+    code {
+        background: #f1f1f1;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #c0392b;
+    }
+
+    .ins-img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 1px solid #eee;
+    }
+    .placeholder-box { text-align: center; }
+    .caption { font-size: 13px; color: #95a5a6; margin-top: 10px; }
+
+    .action-footer {
+        text-align: center;
+        padding: 30px 40px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .instruction-row { flex-direction: column; }
+    }
+</style>
+{% endblock %}
