@@ -396,37 +396,6 @@ def train_tab_layout(engine, trained_model_storage):
             },
         }
         render_plot(counter[0])
-        # # Plot — scatter train/val points, line = SINDy simulation
-        # p.renderers  = []
-        # # instead of call directly p.legend.items = []
-        # if p.legend:
-        #     p.legend.items = []
-
-        # # Train points (blue scatter)
-        # p.scatter(t[train_idx], X[train_idx, 0],
-        #           color="#1f77b4", alpha=0.4, size=4,
-        #           legend_label="Train points")
-
-        # # Validation points (orange scatter)
-        # p.scatter(t[val_idx], X[val_idx, 0],
-        #           color="#ff7f0e", alpha=0.4, size=4,
-        #           legend_label="Val points")
-
-        # # SINDy simulation line on all t
-        # if x_sim_full is not None:
-        #     p.line(t, x_sim_full[:, 0],
-        #            color="#2ecc71", line_width=2.5,
-        #            legend_label="SINDy found")
-
-        # p.legend.click_policy = "hide"
-        # p.legend.location     = "top_right"
-
-        # res_div.text = (
-        #     f"<div style='color:#2c3e50;'>"
-        #     f"<b>Run #{counter[0]} Equations:</b><br>{formatted_eqs_html}"
-        #     f"<br><small style='color:#7f8c8d;'>"
-        #     f"Train R²(dX)={t_r2:.4f} | Val R²(dX)={v_r2:.4f}</small></div>"
-        # )
 
     # automatically run suggestion for the default Coupled-Spring system
     initial_path = os.path.join('data', file_select.value)
@@ -449,6 +418,6 @@ def train_tab_layout(engine, trained_model_storage):
 
     return column(
         top_row,
-        Div(text="<hr><b>HISTORY LEADERBOARD — Metrics on dx/dt (derivative space)</b>"),
+        Div(text="<hr><b>TRAINING HISTORY — Metrics on dx/dt (derivative space)</b>"),
         row(history_table),
     )
