@@ -247,6 +247,7 @@ def train_tab_layout(engine, trained_model_storage):
     # -------------------------------------------------------------------------
     p = figure(title="Model Result",
                width=850, height=400)
+    p.scatter([], [], alpha=0)
     p.legend.click_policy = "hide"
 
     res_div = Div(
@@ -271,7 +272,7 @@ def train_tab_layout(engine, trained_model_storage):
         x_sim_full   = data['x_sim']
 
         p.renderers = []
-        if p.legend:
+        if p.legend and len(p.legend) > 0:
             p.legend.items = []
         # Train points in BLUE
         p.scatter(t[train_idx], X[train_idx, 0],
@@ -289,19 +290,22 @@ def train_tab_layout(engine, trained_model_storage):
         view_div.text = f"<b style='color:#2c3e50;'>👁 Viewing Run #{run_id}</b>"
         
     _DIAG_MESSAGES = {
-        "LIBRARY_TOO_SIMPLE": ("⚠️", "#e67e22",
-            "Structured residual detected (autocorr={autocorr}) — "
-            "the current library is likely missing terms. "
-            "Try increasing Degree or switching to Combined library."),
-        "HIDDEN_VARIABLE":    ("🔍", "#8e44ad",
-            "Residual shows no correlation with any observed variable (max_corr={max_corr}) — "
-            "the leftover dynamics cannot be explained by the current state space. "
-            "A hidden or unobserved variable may be present."),
-        "DATA_QUALITY":       ("📉", "#e74c3c",
-            "Low SNR detected ({snr_db} dB) — residual energy is close to signal energy. "
-            "Data may be too noisy. Try increasing Sparsity Threshold or smoothing your data."),
-        "OK":                 ("✅", "#27ae60",
-            "No significant structure detected in residual. Model appears to fit well."),
+    "OK": ("✅", "#27ae60",
+        "No significant structure detected in residual. Model appears to fit well."),
+    "CHAOTIC_SYSTEM": ("🌀", "#2980b9",
+        "R² in derivative space is high ({r2_dx}) but the system appears chaotic "
+        "(λ ≈ {lyap}). Trajectory divergence is a mathematical property of this "
+        "system — not a model error. SINDy may still have found the correct equations."),
+    "DATA_QUALITY": ("📉", "#e74c3c",
+        "Low SNR detected ({snr_db} dB) — residual energy is close to signal energy. "
+        "Data may be too noisy. Try increasing Sparsity Threshold or smoothing your data."),
+    "LIBRARY_TOO_SIMPLE": ("⚠️", "#e67e22",
+        "Structured residual detected (autocorr={autocorr}) — the current library is "
+        "likely missing terms. Try increasing Degree or switching to Combined library."),
+    "UNDERFITTING": ("🔻", "#7f8c8d",
+        "R² is low ({r2_dx}) but residual shows no clear structure. "
+        "The sparsity threshold may be too aggressive, pruning valid terms. "
+        "Try lowering the Sparsity Threshold."),
     }
 
     def _render_diagnosis(diagnosis):
