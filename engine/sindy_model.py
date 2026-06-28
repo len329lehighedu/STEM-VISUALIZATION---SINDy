@@ -161,3 +161,57 @@ class SINDyEngine:
         mae  = float(mean_absolute_error(X_true, X_pred))
         r2   = float(r2_score(X_true, X_pred, multioutput='uniform_average'))
         return {'mse': float(mse), 'rmse': rmse, 'mae': mae, 'r2': r2}
+    def analyze_residual(self, X, t):
+        """
+        Analyze residual after fit
+        Return a dict contains failure_type + signals for UI
+        """
+        if self.model is None:
+            return None
+
+        dX_true = self.compute_derivatives(X, t)
+        dX_pred = self.model.predict(X)
+        residual = dX_true - dX_pred  # shape: (n_samples, n_features)
+
+        results = {}
+        for i in range(residual.shape[1]):
+            r = residual[:, i]
+            name = self.feature_names[i] if self.feature_names else f"x{i}"
+
+            # 1. Noise level — SNR
+            signal_power = np.var(dX_true[:, i])
+            noise_power  = np.var(r)
+            snr_db = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else 99
+
+            # 2. Residual has structure or not? — autocorrelation lag-1
+            r_norm = r - r.mean()
+            autocorr = float(np.corrcoef(r_norm[:-1], r_norm[1:])[0, 1])
+
+            # 3. Residual correlate with?
+            max_corr = 0.0
+            max_corr_var = None
+            for j in range(X.shape[1]):
+                c = abs(float(np.corrcoef(r, X[:, j])[0, 1]))
+                if c > max_corr:
+                    max_corr = c
+                    max_corr_var = self.feature_names[j] if self.feature_names else f"x{j}"
+
+            # 4. Classify failure
+            if snr_db < 10:
+                failure = "DATA_QUALITY"
+            elif abs(autocorr) > 0.5:
+                failure = "LIBRARY_TOO_SIMPLE"
+            elif max_corr < 0.2:
+                failure = "HIDDEN_VARIABLE"
+            else:
+                failure = "OK"
+
+            results[name] = {
+                'snr_db':       round(snr_db, 2),
+                'autocorr':     round(autocorr, 3),
+                'max_corr':     round(max_corr, 3),
+                'max_corr_var': max_corr_var,
+                'failure':      failure,
+            }
+
+        return results
