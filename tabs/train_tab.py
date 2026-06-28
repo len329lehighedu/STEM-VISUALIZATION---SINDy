@@ -232,6 +232,8 @@ def train_tab_layout(engine, trained_model_storage):
         index_position=None, background="#ffffff",
         sortable=True, selectable=True,
     )
+    btn_delete = Button(label="🗑 Delete Selected Run", 
+                    button_type="danger", width=200)
     def on_row_select(attr, old, new):
         if not new:
             return
@@ -251,6 +253,8 @@ def train_tab_layout(engine, trained_model_storage):
         text="<h3>Run Equations:</h3>",
         styles={'background': '#f8f9fa', 'padding': '10px', 'border-radius': '5px'}
     )
+    # div for residual analysis/diagnosis
+    diagnosis_div = Div(text="", styles={'padding': '10px'})
 
     counter = [0]
     view_div = Div(
@@ -283,6 +287,36 @@ def train_tab_layout(engine, trained_model_storage):
         p.legend.location     = "top_right"
         p.title.text = f"Model Result — Run #{run_id}"
         view_div.text = f"<b style='color:#2c3e50;'>👁 Viewing Run #{run_id}</b>"
+        
+    _DIAG_MESSAGES = {
+        "LIBRARY_TOO_SIMPLE": ("⚠️", "#e67e22",
+            "Structured residual detected (autocorr={autocorr}) — "
+            "the current library is likely missing terms. "
+            "Try increasing Degree or switching to Combined library."),
+        "HIDDEN_VARIABLE":    ("🔍", "#8e44ad",
+            "Residual shows no correlation with any observed variable (max_corr={max_corr}) — "
+            "the leftover dynamics cannot be explained by the current state space. "
+            "A hidden or unobserved variable may be present."),
+        "DATA_QUALITY":       ("📉", "#e74c3c",
+            "Low SNR detected ({snr_db} dB) — residual energy is close to signal energy. "
+            "Data may be too noisy. Try increasing Sparsity Threshold or smoothing your data."),
+        "OK":                 ("✅", "#27ae60",
+            "No significant structure detected in residual. Model appears to fit well."),
+    }
+
+    def _render_diagnosis(diagnosis):
+        if not diagnosis:
+            return ""
+        html = "<b>🔬 Diagnosis Report:</b><br>"
+        for var, info in diagnosis.items():
+            icon, color, msg_tpl = _DIAG_MESSAGES[info['failure']]
+            msg = msg_tpl.format(**info)
+            html += (
+                f"<div style='margin:6px 0; padding:8px; "
+                f"border-left:4px solid {color}; background:#fafafa; border-radius:4px;'>"
+                f"<b>{icon} {var}:</b> {msg}</div>"
+            )
+        return html
 
     # -------------------------------------------------------------------------
     # 4. Callback
@@ -332,6 +366,8 @@ def train_tab_layout(engine, trained_model_storage):
                     train_frac   = train_frac,
                     random_seed  = counter[0] * 7,  # different seed each run
                 )
+            diagnosis     = engine.analyze_residual(X, t)
+            diagnosis_div.text = _render_diagnosis(diagnosis)
         except Exception as e:
             res_div.text = f"<span style='color:red;'>⚠ Fit error: {e}</span>"
             return
@@ -397,6 +433,33 @@ def train_tab_layout(engine, trained_model_storage):
         }
         render_plot(counter[0])
 
+    def on_delete_click():
+        selected = source_history.selected.indices
+        if not selected:
+            return
+        
+        idx    = selected[0]
+        run_id = source_history.data['run'][idx]
+        
+        # Xóa khỏi storage
+        if run_id in trained_model_storage:
+            del trained_model_storage[run_id]
+        
+        # Xóa khỏi DataTable — rebuild toàn bộ data dict
+        new_data = {k: [v for i, v in enumerate(vals) if i != idx]
+                    for k, vals in source_history.data.items()}
+        source_history.data = new_data
+        source_history.selected.indices = []
+        
+        # Nếu đang view run bị xóa → clear plot
+        if view_div.text and f"Run #{run_id}" in view_div.text:
+            p.renderers = []
+            if p.legend: p.legend.items = []
+            p.title.text = "Model Result"
+            view_div.text = ""
+
+    btn_delete.on_click(on_delete_click)
+    
     # automatically run suggestion for the default Coupled-Spring system
     initial_path = os.path.join('data', file_select.value)
     if os.path.exists(initial_path):
@@ -419,5 +482,6 @@ def train_tab_layout(engine, trained_model_storage):
     return column(
         top_row,
         Div(text="<hr><b>TRAINING HISTORY — Metrics on dx/dt (derivative space)</b>"),
-        row(history_table),
+        diagnosis_div,
+        row(history_table,btn_delete),
     )
