@@ -251,7 +251,7 @@ def train_tab_layout(engine, trained_model_storage):
     # 3. Plot
     # -------------------------------------------------------------------------
     p = figure(title="Model Result",
-               width=850, height=400)
+               width=850, height=400, sizing_mode="stretch_width")
     p.scatter([], [], alpha=0)
     p.legend.click_policy = "hide"
 
@@ -265,8 +265,10 @@ def train_tab_layout(engine, trained_model_storage):
     # Researcher checks for temporal structure — random = good, pattern = missing terms
     p_resid = figure(
         title="Residual vs Time",
-        width=380, height=280,
-        x_axis_label="Time", y_axis_label="Residual",
+        sizing_mode="stretch_width", 
+        height=280,
+        x_axis_label="Time", 
+        y_axis_label="Residual",
         toolbar_location=None,
     )
     p_resid.scatter([], [], alpha=0)
@@ -274,8 +276,10 @@ def train_tab_layout(engine, trained_model_storage):
     # Dominant frequency peak → missing periodic term in library
     p_fft = figure(
         title="Residual FFT (Frequency Content)",
-        width=380, height=280,
-        x_axis_label="Frequency (Hz)", y_axis_label="Amplitude",
+        sizing_mode="stretch_width", 
+        height=280,
+        x_axis_label="Frequency (Hz)", 
+        y_axis_label="Amplitude",
         toolbar_location=None,
     )
     p_fft.scatter([], [], alpha=0)
@@ -283,8 +287,10 @@ def train_tab_layout(engine, trained_model_storage):
     # Perfect fit → all points on y=x diagonal
     p_scatter = figure(
         title="dX True vs dX Predicted",
-        width=380, height=280,
-        x_axis_label="dX Predicted", y_axis_label="dX True",
+        sizing_mode="stretch_width", 
+        height=280,
+        x_axis_label="dX Predicted", 
+        y_axis_label="dX True",
         toolbar_location=None,
     )
     p_scatter.scatter([], [], alpha=0)
@@ -594,14 +600,16 @@ def train_tab_layout(engine, trained_model_storage):
     top_row = row(
         column(file_select,file_input, upload_status, train_s, split_div,library_select,
                poly_s, thr_s, btn_train, width=320),
-        column(p,view_div)
+        column(p,view_div,sizing_mode="stretch_width"),
+        sizing_mode="stretch_width"
     )
 
     return column(
         top_row,
         Div(text="<hr><b>RESIDUAL DIAGNOSTICS</b>"),
         diag_stats_div,
-        row(p_resid, p_fft, p_scatter),
+        row(p_resid, p_fft, p_scatter,sizing_mode="stretch_width"),
         Div(text="<hr><b>TRAINING HISTORY — Metrics on dx/dt (derivative space)</b>"),
         row(history_table,btn_delete),
+        sizing_mode="stretch_width"
     )
